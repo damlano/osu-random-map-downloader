@@ -1,2 +1,2 @@
 # osu-random-map-downloader
-idk what to set here
+you need to have a osu.ppy.sh session on chrome to work
