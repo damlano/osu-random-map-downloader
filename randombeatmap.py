@@ -4,6 +4,7 @@ import time
 from bs4 import BeautifulSoup
 import json
 import mypersonalib
+
 mypersonalib.initcookie()
 
 desired_mode = 0 # can be 0 (osu) 3 (mania) 1 (taiko) 2 (catch) or None
