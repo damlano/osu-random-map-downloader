@@ -4,21 +4,23 @@ import time
 from bs4 import BeautifulSoup
 import json
 import helperlib
+
 helperlib.initcookie()
 
-desired_mode = 0 # can be 0 (osu) 3 (mania) 1 (taiko) 2 (catch) or None
+desired_mode = 3 # can be 0 (osu) 3 (mania) 1 (taiko) 2 (catch) or None
 mode_filter = True # this is seperate from the other filters either True or False
 
-ammount_of_valid_maps = 10 # how much valid maps till program end?
+ammount_of_valid_maps = 1 # how much valid maps till program end?
 desired_od = None
 desired_hp = None
 desired_ar = None
 desired_bpm = None
+desired_cs = 4 # for mania this  is the mamount of   keys
 desired_length = None # length in seconds
 desired_star_rating = None
-comparison_type = None # decides if these desired variables should be not matching
+comparison_type = "exact" # decides if these desired variables should be not matching
 # or exact or lte (lower than or equal) or gte (greater than or  equal) None (the type) will disable
-# the filter
+# the filter and   set it to "exact" if you wanna filter for 4k charts or  7k
 
 
 def check_value(value, desired_value, comparison_type): # idea of a helper function  by AI
@@ -32,19 +34,20 @@ def check_value(value, desired_value, comparison_type): # idea of a helper funct
         return value >= desired_value
     return False 
 
+def getvalidmap():
+    time.sleep(1)
+    beatmapset_id = random.randint(0,1000000)
+    beatmap_link = f"https://osu.ppy.sh/beatmapsets/{beatmapset_id}"
+    response = requests.get(beatmap_link)
+    if response.status_code == 404:
+        return getvalidmap()
+    return response
+
 i =0
 
 while i < ammount_of_valid_maps:
-    time.sleep(2)
-    beatmapset_id = random.randint(0,1000000)
-    beatmap_link = f"https://osu.ppy.sh/beatmapsets/{beatmapset_id}"
-    
-    response = requests.get(beatmap_link)
-    if response.status_code == 404:
-
-        print(f"map {beatmapset_id} not found")
-
-    if response.status_code == 200:
+    response = getvalidmap()
+    if response:
         soup = BeautifulSoup(response.text, "html.parser")
 
         script_tag = soup.find("script", id="json-beatmapset")        
@@ -59,7 +62,7 @@ while i < ammount_of_valid_maps:
             length = beatmaps.get("total_length")
             star = beatmaps.get("difficulty_rating")
             mode_int = beatmaps.get("mode_int")
-
+            cs = beatmaps.get("cs")
             if mode_filter:
                 if desired_mode is not None:
                     if mode_int != desired_mode:
@@ -70,10 +73,10 @@ while i < ammount_of_valid_maps:
                 check_value(od, desired_od, comparison_type) and
                 check_value(hp, desired_hp, comparison_type) and
                 check_value(length, desired_length, comparison_type) and
+                check_value(cs, desired_cs, comparison_type) and
                 check_value(star, desired_star_rating, comparison_type)):
                 
                 i+=1
-                print(f"Valid map found: {beatmap_link}")
-                #os.startfile(beatmap_link)
-                helperlib.downloadosumap(beatmapset_id, artist, song_name)
+                
+                helperlib.downloadosumap(beatmaps.get("id"), artist, song_name)
                 break
