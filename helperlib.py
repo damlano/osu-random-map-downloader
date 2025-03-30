@@ -3,6 +3,7 @@ import os
 import win32com.client
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+
 osu_cookie = ""
 
 def sanitize_filename(filename): # same story as initcookie
@@ -34,18 +35,24 @@ def initcookie(): # i did not wanna deal with this so AI helped
 def get_osu_path():
     windowsuser = os.getlogin()
     osu_path = rf"C:\Users\{windowsuser}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\osu!.lnk"
+    
     shell = win32com.client.Dispatch("WScript.Shell")
     shortcut = shell.CreateShortcut(osu_path)
     osu_real_path = shortcut.TargetPath
     osu_real_dir = os.path.dirname(osu_real_path)
+    
     beatmap_directory_value = ""
-    with open(f"{osu_real_dir}/osu!.{windowsuser}.cfg", "r") as file:
-        lines = file.readlines()
-        for line in lines:
-            if line.startswith("BeatmapDirectory"):
-                beatmap_directory_value = line.split('=')[1].strip()
 
-    return(f"{osu_real_dir}/{beatmap_directory_value}")
+    config_path = f"{osu_real_dir}/osu!.{windowsuser}.cfg"
+    with open(config_path, "r", encoding="utf-8") as file:
+        for line in file:
+            if line.startswith("BeatmapDirectory"):
+                beatmap_directory_value = line.split('=', 1)[1].strip()
+                break
+    if os.path.isabs(beatmap_directory_value):
+        return beatmap_directory_value
+    else:
+        return os.path.abspath(os.path.join(osu_real_dir, beatmap_directory_value))
 
 def checkifmapalreadyexists(beatmapsetid, path):
     onlyfiles = [f for f in os.listdir(path) if os.path.isdir(os.path.join(path, f))]
@@ -56,21 +63,23 @@ def checkifmapalreadyexists(beatmapsetid, path):
     return False  
 
 def downloadosumap(beatmapset_id, artist, songname):
-
     osu_path = get_osu_path()
     if checkifmapalreadyexists(beatmapset_id, osu_path):
         print("you already have this map")
         return
     headers = {
     "Referer" : f"https://osu.ppy.sh/beatmapsets/{beatmapset_id}",
-    "Cookie" : f"osu_session={osu_cookie}"
+    "Cookie" : f"osu_session={osu_cookie}",
     }
+    redirect_url = None
     response = requests.get(f"https://osu.ppy.sh/beatmapsets/{beatmapset_id}/download",headers=headers, allow_redirects=False)
     if "Location" in response.headers:
         redirect_url = response.headers["Location"]
     else:
-        print(f"No redirect found. Status: {response.status_code} (if its 404 its  dmcaed)")
+        print(f"No redirect found. Status: {response.status_code}")
 
+    if not redirect_url:
+        return -1
     osubeatmap = requests.get(redirect_url)
     
     safe_songname = sanitize_filename(songname)
@@ -82,3 +91,5 @@ def downloadosumap(beatmapset_id, artist, songname):
             f.write(osubeatmap.content)
     else:
         print(f"Failed to download. Status: {osubeatmap.status_code}, Response: {osubeatmap.text}")
+
+    return 1
