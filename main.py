@@ -18,6 +18,7 @@ desired_bpm = None
 desired_cs = None  # for mania this is the number of keys
 desired_length = None  # length in seconds
 desired_star_rating = None
+desired_status = None # put a string here with graveyard ranked or loved depends what oyu want
 
 # GTE = Greater than equal 
 comparison_types = {# LTE = Lower than equal
@@ -28,6 +29,7 @@ comparison_types = {# LTE = Lower than equal
     "length": None,
     "cs": None,
     "star": None,
+    "status": None,
 }
 
 def check_value(value, desired_value, comparison_type):
@@ -74,7 +76,7 @@ while i < amount_of_valid_maps:
             star = beatmap.get("difficulty_rating")
             mode_int = beatmap.get("mode_int")
             cs = beatmap.get("cs")
-            
+            status = beatmap.get("status")
             if mode_filter and desired_mode is not None and mode_int != desired_mode:
                 continue
             
@@ -85,6 +87,8 @@ while i < amount_of_valid_maps:
                 check_value(length, desired_length, comparison_types["length"]) and
                 check_value(cs, desired_cs, comparison_types["cs"]) and
                 check_value(star, desired_star_rating, comparison_types["star"])):
+                check_value(status, desired_status, comparison_types["status"])
+
                 print(beatmap.get("id"))
                 downloaded = helperlib.downloadosumap(beatmap.get("id"), artist, song_name)
                 if downloaded:
